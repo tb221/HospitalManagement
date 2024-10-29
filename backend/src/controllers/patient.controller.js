@@ -1,5 +1,6 @@
 import express from "express";
 import { Patient } from "../models/patients.model.js";
+import { Doctor } from "../models/doctors.model.js";
 
 
 const patientSignUp = async (req,res)=>{
@@ -45,6 +46,7 @@ const patientSignIn = async(req,res)=>{
         const {email,password} =  req.body;
         if(!email || !password)
         {
+            console.log("Prob1");
             res.status(404).json({
                 msg : "Insuffucuent Info",
                 success : false
@@ -54,27 +56,42 @@ const patientSignIn = async(req,res)=>{
         const patient = await Patient.findOne({
             email : email,
         });
+
+        const isPasswordCorrect = await patient.isPasswordCorrect(password);
+        console.log("Password status is",isPasswordCorrect);
+        if(!isPasswordCorrect){
+            console.log("Prob3");
+            res.status(404).json({
+                msg:"User is Inavalid",
+                success:false,
+            });
+            return;
+        }
         if(!patient)
         {
+            console.log("Prob2");
             res.status(401).json({
                 msg : "No Patient Currently",
                 success : false,
             });
             return;
         }
-        const generatedToken = patient.generateToken();
-        const options = {
-            httpOnly : true,
-            secure : true
-        };
+        const generatedToken = await patient.generateToken();
+        
+        console.log("Token is",generatedToken); 
+        const patientInfo = await Patient.findOne({
+            email : email,
+        }).select("-password");
 
-        res.status(201).cookie("generatedToken",generatedToken,options).json({
+
+        res.status(200).json({
             msg : "Patient Logged In Successfully",
             success : true,
-            patient: patient,
-            generatedToken:generatedToken,
+            patient: patientInfo,
+            token : generatedToken
         });
         return;
+       
     }
     catch(error){
         res.status(404).json({
@@ -86,7 +103,44 @@ const patientSignIn = async(req,res)=>{
     }
 }
 
+const fillDoctor = async(req,res)=>{
+    const patientInfo = req.patient;
+    const docName = req.query.name;
+    const docEmail = req.query.email;
+    const docInfo = await Doctor.findOne({
+        email:docEmail,
+    });
+    if(!docInfo){
+        res.status(401).json({
+            msg : "No Doctor Available",
+            success : false
+        });
+        return;
+    }
+    const updatedPatient = await Patient.findByIdAndUpdate({
+        _id : patientInfo._id
+    },
+    {
+        $push: { underWhichDoctors: docInfo._id }
+    },
+    { new: true, useFindAndModify: false });
+    if (!updatedPatient) {
+        console.log('Patient not found');
+        res.status(401).json({
+            msg : "Not able to Update, Please try again",
+            success : false
+        });
+        return ;
+    }
+    console.log(updatedPatient);
+    res.status(200).json({
+        patient : updatedPatient,
+    });
+    return;
+}
+
 export {
     patientSignUp,
     patientSignIn,
+    fillDoctor
 }

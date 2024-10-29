@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { setPatient } from '../redux/patientSlice';
 import toast from 'react-hot-toast';
+import { setToken } from '../redux/tokenSlice';
 
 
 const Register = () => {
@@ -42,10 +43,12 @@ const Register = () => {
                 password:password
             };
             const resp = await axios.post("http://localhost:8080/api/v1/patient/signin",data);
-            if(resp.data.patient)
+            console.log(resp.data);
+            if(resp.data.patient && resp.data.token)
             {
                 dispatch(setPatient(resp.data.patient));
-                console.log(resp.data.patient.name);
+                dispatch(setToken(resp.data.token))
+                console.log(resp.data);
                 toast.success("Sign In Successfull");
                 navigate("/");
         

@@ -8,7 +8,7 @@ import { Toaster } from 'react-hot-toast'
 const Body = () => {
   return (
     <>
-         <Toaster />
+        
          <Navbar />
          
          <Carousel />

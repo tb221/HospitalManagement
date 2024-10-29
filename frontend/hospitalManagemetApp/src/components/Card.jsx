@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useSelector } from 'react-redux';
 //import { setPatient } from '../redux/patientSlice';
 import  { useNavigate }  from 'react-router-dom';
+import axios  from 'axios';
 const Card = ({ title, description, coverImage, name, email}) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const navigate = useNavigate();
@@ -10,16 +11,51 @@ const Card = ({ title, description, coverImage, name, email}) => {
     setIsExpanded(!isExpanded);
   };
   const patientInfo = useSelector((store)=>store.appPatient.patient);
-  const getAppointment = () =>{
-    console.log("Name is ",name);
-    console.log("email is ",email);
-    if(!patientInfo){
-      navigate("/register");
+  const token = useSelector((store)=>store.appToken.token);
+    
+      const getAppointment = async() =>{
+        try{
+            console.log("Name is ",name);
+            console.log("email is ",email);
+            if(!patientInfo){
+              navigate("/register");
+        
+              return;
+            }
+            console.log("Token at FE ",token);
+            
+            const response = await axios.get("http://localhost:8080/api/v1/patient/filldoctor",
+            {
+              headers : {
+                Authorization : `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              },
+              params:{
+                  name:name,
+                  email:email
+              },
+            });
+            console.log(response.data);
       
-      return;
+      }
+      catch(error){
+        console.error('Error fetching data:', error);
+        // Handle specific error cases if needed
+        if (error.response) {
+            // Server responded with a status other than 200
+            console.error('Response data:', error.response.data);
+            console.error('Response status:', error.response.status);
+        } else if (error.request) {
+            // Request was made but no response was received
+            console.error('Request data:', error.request);
+        } else {
+            // Something happened while setting up the request
+            console.error('Error message:', error.message);
+        }
+      }
     }
-    toast.success(`appointment booked with ${name}`);
-  }
+  
+  
   return (
     <div className="max-w-sm rounded overflow-hidden  shadow-lg bg-white mx-auto">
       <img className="w-full  h-48 md:h-56 object-contain" src={`${coverImage}`} alt={title} />

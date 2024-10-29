@@ -39,11 +39,8 @@ patientShema.methods.generateToken = function(){
         {
             _id: this._id,
             email: this.email,
-        },
+        },   
         process.env.TOKEN_SECRET,
-        {
-            expiresIn: process.env.TOKEN_EXPIRY
-        }
     );
 }
 

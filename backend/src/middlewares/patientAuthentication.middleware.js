@@ -4,11 +4,16 @@ import dotenv from "dotenv"
 dotenv.config({
     path:'./.env'
 });
-export const patientAuthenticaton = async(req,_,next)=>{
+const patientAuthenticaton = async(req,res,next)=>{
+    
+
     try{
-        if((req.cookies && req.cookies.generatedToken) || (req.headers && (req.headers.Authoziration)))
+        console.log("Entered in Patient Authentication");
+        console.log("header====>",req.headers['authorization']);
+        if(req.headers && (req.headers['authorization']))
         {
-            const token = req.cookies.generatedToken || req.headers.Authoziration.replace("Bearer","");
+           
+            const token = req.headers['authorization']?.split(' ')[1];
             if (!token) {
                 res.status(401).json({
                     msg : "Invalid User",
@@ -16,32 +21,36 @@ export const patientAuthenticaton = async(req,_,next)=>{
                 })
                 return;
             }
-            const decodedToken = jwt.verify(token, process.env.TOKEN_SECRET);
-            if(!decodedToken){
-                res.status(401).json({
-                    msg : "Invalid User",
-                    success : false,
-                })
-                return;
+            const decodedToken =  jwt.verify(token, process.env.TOKEN_SECRET);
+            const patientInfo = await Patient.findById(decodedToken._id).select('-password');
+
+            if (!patientInfo) {
+                return res.status(401).json({
+                    msg: "Invalid User",
+                    success: false,
+                });
             }
-            const patient = await Patient.findById(decodedToken._id).select("-password ");
-            if (!patient) {
-                
-                res.status(401).json({
-                    msg : "Invalid User",
-                    success : false,
-                })
-                return;
-            }
-            req.patient = patient;
+    
+            req.patient = patientInfo; // Save patient info to request for later use
             next();
+            
+        }
+        else{
+            return res.status(404).json({
+                msg : "Not Validated",
+                success : false
+            })
         }
     }
     catch(error){
+        console.log("Error in Patient Authentication");
         res.status(501).json({
             msg : "Invalid User",
             success : false,
         })
         return;
     }
+}
+export  {
+    patientAuthenticaton,
 }
